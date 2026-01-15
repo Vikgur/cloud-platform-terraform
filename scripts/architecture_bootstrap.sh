@@ -9,7 +9,7 @@ global/org-policies
 modules/network/{vpc,subnets,nat,routing}
 modules/security/{security-groups,nsg,firewall}
 modules/compute/{master-node,worker-node,autoscaling,launch-templates}
-modules/kubernetes/{control-plane,node-groups,cni,bootstrap}
+modules/kubernetes/{control-plane,node-groups,cni,bootstrap,templates}
 modules/storage/{block,object,backups}
 modules/observability/{logging,monitoring,tracing}
 modules/access/{iam,oidc,rbac}
@@ -36,6 +36,8 @@ global/org-policies/{guardrails.tf,quotas.tf,scp.tf}
 modules/network/{outputs.tf,variables.tf,main.tf}
 modules/security/{outputs.tf,variables.tf,main.tf}
 modules/compute/{outputs.tf,variables.tf,main.tf}
+modules/kubernetes/{outputs.tf,variables.tf,main.tf}
+modules/kubernetes/templates/{master_bootstrap.sh,worker_join.sh}
 modules/shared/locals.tf
 modules/shared/naming/{locals.tf,variables.tf,outputs.tf}
 modules/shared/tags/{locals.tf,variables.tf,outputs.tf}

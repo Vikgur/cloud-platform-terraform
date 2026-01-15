@@ -743,6 +743,168 @@ modules/compute — это:
 – без бизнес-логики
 – без Kubernetes-знаний
 
+### modules/security/variables.tf
+
+Пояснение:
+– compute полностью параметризован
+– environment решает размер
+– модуль не хардкодит ничего
+
+### modules/security/main.tf
+
+IAM Role для EC2 (минимальный)
+"aws_iam_role" "ec2"
+Зачем:
+– EC2 не должны работать без роли
+– потом сюда добавится IRSA / EBS / SSM
+
+Launch Template (общий для workers)
+"aws_launch_template" "worker"
+Пояснение:
+– immutable VM
+– любое изменение = rollout
+– основа autoscaling
+
+Auto Scaling Group (workers)
+"aws_autoscaling_group" "workers"
+Пояснение:
+– workers всегда через ASG
+– масштабирование безопасно
+– подходит для 3 → 50 → 500
+
+Master Nodes (без ASG)
+"aws_instance" "master"
+Пояснение:
+– master ноды контролируем вручную
+– scaling осознанный
+– стабильность control plane
+
+В enterprise:
+– masters почти никогда не autoscale
+
+### modules/security/outputs.tf
+
+– kubernetes/bootstrap
+– observability
+– controlled lifecycle
+
+---
+
+## modules/kubernetes
+
+Kubernetes-уровень.
+
+Состав:
+
+- `control-plane/` — инициализация и управление control-plane  
+- `node-groups/` — группы worker-нод  
+- `cni/` — сетевая подсистема кластера  
+- `bootstrap/` — первичная инициализация (cloud-init / kubeadm)  
+- `templates/master_bootstrap.sh` — bootstrap control-plane нод  
+- `templates/worker_join.sh` — подключение worker-нод к кластеру  
+- `main.tf` — реализация Kubernetes-кластера и bootstrap-логики  
+- `variables.tf` — параметры кластера и bootstrap  
+- `outputs.tf` — экспорт kube-идентификаторов и endpoint’ов  
+
+Решает задачи:
+– Bootstrap k3s
+– что считается кластером
+– где граница ответственности
+– как формируется control-plane
+– как ноды становятся кластером
+– какие базовые компоненты обязательны
+
+Не решает:
+– конфигурирация внутри (через Ansible)
+– деплой приложений
+– Helm-чарты сервисов
+– бизнес-настройки
+
+Подкаталоги control-plane/, node-groups/, cni/, bootstrap/ отражают enterprise-декомпозицию.  
+В enterprise-платформах эти части выносятся в отдельные подмодули.
+В текущем проекте используется единый модуль `kubernetes` с одной ответственностью и полной реализацией в `main.tf`.  
+
+DevSecOps-смысл modules/kubernetes
+
+Что обеспечено:
+
+– кластер как infra-object
+– воспроизводимый bootstrap
+– чёткая граница Terraform / Ansible
+– zero-click join нод
+
+Что не делается здесь (как пример):
+– ingress
+– cert-manager
+– monitoring
+– apps
+
+Соблюдены best practices:
+– каждый слой изолирован
+– можно снести и пересобрать сразу ВМ + Kubernetes
+
+Итог
+
+modules/kubernetes — это:
+– формализация кластера
+– контроль жизненного цикла
+– даёт воспроизводимость
+– основа для GitOps
+
+Без него DevOps всегда «ручной».
+
+### modules/templates/master_bootstrap.sh
+
+Пояснение:
+– отключаем всё лишнее
+– платформа минимальна
+– дальше только GitOps
+
+### modules/templates/worker_join.sh
+
+Пояснение:
+– worker тупой
+– он просто присоединяется
+– никаких условий
+
+### modules/variables.tf
+
+Пояснение:
+– модуль не знает, откуда VM
+– IP приходят из modules/compute
+– версия кластера фиксируется
+
+### modules/main.tf
+
+Генерация cluster token
+"random_password" "k3s_token"
+Зачем:
+– единый trust для нод
+– immutable bootstrap
+
+Bootstrap master
+"null_resource" "master_bootstrap"
+Пояснение:
+– Terraform управляет lifecycle
+– bootstrap идемпотентен
+– это не «ssh руками»
+
+Join workers
+"null_resource" "worker_join" 
+Пояснение:
+– порядок строго зафиксирован
+– workers не живут без control-plane
+– масштабирование предсказуемо
+
+### modules/outputs.tf
+
+Зачем:
+– передача в Ansible / GitOps
+– auditability
+– автоматизация
+
+
+
 ---
 
 ### Итоговая картина
@@ -774,3 +936,17 @@ modules/compute
 
 modules/kubernetes
 – зачем они существуют
+
+Границы ответственности
+
+modules/compute
+– VM существуют
+
+modules/security
+– им разрешено общаться
+
+modules/kubernetes
+– VM становятся кластером
+
+gitops/*
+– кластер начинает жить
