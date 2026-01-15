@@ -351,18 +351,13 @@ modules/shared — это инфраструктурный язык компан
 Без него:
 – хаос
 – невозможный аудит
-– плохой DevSecOps
+– плохой DevSecOps и incident response
 
 Cмысл modules/shared:
 Все ресурсы одинаково именованы
 Все ресурсы тегированы
 Любой ресурс можно отследить
 Compliance автоматизируется
-
-Это фундамент для:
-– billing
-– audit
-– incident response
 
 ### modules/shared/naming
 
@@ -455,13 +450,13 @@ Labels ≠ tags.
 
 Состав:
 
-- vpc/ — VPC/VNet
-- subnets/ — публичные/приватные
-- nat/ — outbound-доступ
-- routing/ — route tables
-- main.tf — реализация сети: VPC, сабнеты, маршруты, NAT
-- variables.tf — входные параметры сети (CIDR, AZ, флаги)
-- outputs.tf — экспорт сетевых идентификаторов для других модулей
+- `vpc/` — VPC / VNet  
+- `subnets/` — публичные и приватные подсети  
+- `nat/` — outbound-доступ в интернет  
+- `routing/` — таблицы маршрутизации  
+- `main.tf` — реализация сети (VPC, подсети, маршруты, NAT)  
+- `variables.tf` — параметры сети (CIDR, AZ, флаги)  
+- `outputs.tf` — экспорт сетевых идентификаторов для других модулей
 
 Он решает:
 – изоляцию окружений
@@ -475,6 +470,11 @@ Best practices:
 – проектируется заранее
 – отделена от compute и security логически
 
+Границы ответственности:
+– маршруты
+– подсети
+– gateways
+
 Ответственности:
 – VPC
 – Subnets (public / private)
@@ -482,9 +482,11 @@ Best practices:
 – NAT Gateway
 – Route Tables
 
-Внутреннее дробление (vpc/, subnets/, nat/, routing/) показано концептуально. В enterprise-платформах эти части выносятся в отдельные подмодули. В текущем проекте используется единый модуль network с одной ответственностью.
+Внутреннее дробление (vpc/, subnets/, nat/, routing/) показано концептуально. 
+В enterprise-платформах эти части выносятся в отдельные подмодули. 
+В текущем проекте используется единый модуль `network` с одной ответственностью с полной реализацией в `main.tf`.
 
-DevSecOps-смысл network
+DevSecOps-смысл modules/network
 
 Что обеспечено:
 – network isolation
@@ -576,18 +578,170 @@ Private:
 
 Состав:
 
-- security-groups/ — правила доступа
-- nsg/ — cloud-native аналоги
-- firewall/ — WAF, FW
+- `security-groups/` — правила сетевого доступа (SG / firewall rules)
+- `nsg/` — cloud-native network security (NSG / equivalents)
+- `firewall/` — L7/L4 защита: WAF, FW
+- `main.tf` — реализация сетевой и perimeter-безопасности
+- `variables.tf` — параметры правил и режимов безопасности
+- `outputs.tf` — экспорт security-идентификаторов для других модулей
 
+Решает задачи:
+– кто с кем может общаться
+– откуда возможен ingress
+– куда разрешён egress
+– минимизацию attack surface
 
+Best practicies:
+– сеть ≠ безопасность
+– security живёт отдельно
+– правила читаются как политика, а не как «случайный код»
+– Security groups (SG) делим по ролям, а не по ресурсам.
 
+Границы ответственности:
+– firewall-логика
+– security groups
+– network segmentation
 
+Минимально правильная ролевая модель SG для k8s:
+sg-control-plane
+sg-workers
+sg-ingress (ALB / LB)
+sg-egress (явный outbound)
 
+Подкаталоги security-groups/, nsg/, firewall/ отражают enterprise-декомпозицию. 
+В enterprise-платформах эти части выносятся в отдельные подмодули. 
+В текущем проекте используется единый модуль `security` с одной ответственностью с полной реализацией в `main.tf`.
 
+DevSecOps-смысл modules/security
 
+Что обеспечено:
 
+– один public ingress
+– zero-trust внутри VPC
+– минимальный attack surface
+– читаемая security-модель
+– правила как код
 
+Security review читается без схем и созвонов.
+
+Типовые ошибки, которых уже нет
+
+– 0.0.0.0/0 на ноды
+– смешивание SG и network
+– implicit trust
+– copy-paste правил
+
+Итог
+
+modules/security — это:
+– формализация доверия
+– основа zero-trust
+– обязательный слой перед compute и k8s
+
+Без него Kubernetes = открытая цель.
+
+### modules/security/variables.tf
+
+– security жёстко привязана к VPC
+– CIDR нужен для east-west правил
+
+### modules/security/main.tf
+
+Ingress / LB Security Group
+"aws_security_group" "ingress"
+Пояснение:
+– единственная точка public ingress
+– только 80/443
+– дальше трафик идёт внутрь VPC
+
+Control Plane SG
+"aws_security_group" "control_plane"
+Пояснение:
+– API доступен только воркерам
+– нет public доступа
+– east-west разрешён внутри VPC
+
+Worker Nodes SG
+"aws_security_group" "workers"
+Пояснение:
+– workers не принимают public traffic
+– общаются только внутри кластера
+– egress открыт, ingress ограничен
+
+### modules/security/outputs.tf
+
+– compute и kubernetes используют эти SG
+– жёсткая связка через outputs, не через data lookup
+
+---
+
+## modules/compute
+
+Виртуальные машины и scaling. Отвечает только за вычислительные ресурсы. Предсказуемый слой.
+
+Состав:
+
+- `master-node/` — control-plane ноды  
+- `worker-node/` — worker-ноды  
+- `autoscaling/` — логика масштабирования  
+- `launch-templates/` — шаблоны виртуальных машин  
+- `main.tf` — реализация compute-ресурсов (VM, ASG, templates)  
+- `variables.tf` — параметры нод и scaling  
+- `outputs.tf` — экспорт идентификаторов compute-ресурсов  
+
+Решает задачи:
+– сколько нод
+– какого типа
+– как они масштабируются
+– как они пересоздаются
+
+Не знает:
+– что это Kubernetes
+– какие порты
+– какие IAM-политики
+
+Границы ответственности:
+– какие ноды существуют
+
+Что входит в modules/compute
+– Launch Template
+– Auto Scaling Group (workers)
+– Отдельные master nodes
+– IAM Instance Profile (минимальный)
+
+Подкаталоги master-node/, worker-node/, autoscaling/, launch-templates/ отражают enterprise-декомпозицию.  
+В enterprise-платформах эти части выносятся в отдельные подмодули.
+В текущем проекте используется единый модуль `compute` с одной ответственностью и полной реализацией в `main.tf`.  
+
+DevSecOps-смысл modules/compute
+
+Что обеспечено:
+
+– immutable infra
+– predictable scaling
+– no snowflake nodes
+– blast radius control
+– чёткое разделение master / worker
+
+Compute можно:
+– пересоздавать
+– масштабировать
+– дренировать
+
+Без страха сломать платформу.
+
+Типовые ошибки, которых тут нет:
+– ручное создание VM
+– разные AMI на нодах
+– autoscaling masters
+– смешивание compute и k8s
+
+Итог
+
+modules/compute — это:
+– управляемая мощность
+– без бизнес-логики
+– без Kubernetes-знаний
 
 ---
 
@@ -606,3 +760,17 @@ global/iam
 global/backend — где state
 global/iam — кто может менять infra
 global/org-policies — что никогда нельзя делать
+
+Границы ответственности
+
+modules/network
+– куда ноды подключаются
+
+modules/security
+– кто с кем говорит
+
+modules/compute
+– какие ноды существуют
+
+modules/kubernetes
+– зачем они существуют

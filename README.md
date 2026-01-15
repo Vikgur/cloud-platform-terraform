@@ -48,6 +48,11 @@
 - Единые labels
 - Единые locals
 
+Без shared-модуля:
+- Хаос
+- Невозможный аудит
+- Плохой DevSecOps и incident response
+
 3.2 Наполнение `modules/network`
 
 Сетевой необратимый фундамент.
@@ -56,10 +61,46 @@
 - Изоляция окружений
 - Control / data plane separation
 - Ingress / egress контроль
-- Blast radius
+- Blast radius (Взлом ноды = доступ к pod secrets, lateral movement, takeover всего кластера)
 - Zero-trust основу
 
+Без network-модуля:
+- Security невозможна
+- Kubernetes нестабилен
+
 3.3 Наполнение `modules/security`
+
+Сетевая и perimeter-безопасность.
+
+Решает задачи:
+- Кто с кем может общаться
+- Откуда возможен ingress
+- Куда разрешён egress
+- Минимизацию attack surface
+
+Security-модуль — это:
+- Формализация доверия
+- Основа zero-trust
+- Обязательный слой перед compute и k8s
+
+3.4 Наполнение `modules/compute`
+
+Виртуальные машины и scaling. Отвечает только за вычислительные ресурсы. 
+
+Решает задачи:
+– сколько нод
+– какого типа
+– как они масштабируются
+– как они пересоздаются
+
+Compute-модуль — это:
+– управляемая мощность
+– без бизнес-логики
+– до Kubernetes
+
+3.5 Наполнение `modules/kubernetes`
+
+
 
 
 4. 
