@@ -16,6 +16,7 @@ modules/access/{iam,oidc,rbac}
 modules/shared/{labels,naming,tags}
 environments/{dev,stage,prod}
 policies/{opa,tfsec,checkov}
+policies/opa/terraform
 ci
 scripts
 )
@@ -49,7 +50,9 @@ modules/shared/labels/{locals.tf,variables.tf,outputs.tf}
 environments/dev/{backend.tf,providers.tf,main.tf,variables.tf,terraform.tfvars}
 environments/stage/{backend.tf,providers.tf,main.tf,variables.tf,terraform.tfvars}
 environments/prod/{backend.tf,providers.tf,main.tf,variables.tf,terraform.tfvars}
-policies/opa/terraform.rego
+policies/opa/terraform/{naming.rego,tagging.rego,encryption.rego,regions.rego,README.md}
+policies/tfsec/tfsec.yml
+policies/checkov/checkov.yml
 ci/{terraform-validate.yml,terraform-plan.yml,terraform-apply.yml,security-scan.yml}
 scripts/{init.sh,plan.sh,apply.sh}
 .terraform-version

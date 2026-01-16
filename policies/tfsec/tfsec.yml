@@ -1,0 +1,5 @@
+severity_overrides:
+  AWS017: HIGH
+
+exclude:
+  - AWS001

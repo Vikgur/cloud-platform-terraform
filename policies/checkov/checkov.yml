@@ -1,0 +1,4 @@
+skip-check:
+  - CKV_AWS_20
+
+soft-fail: false

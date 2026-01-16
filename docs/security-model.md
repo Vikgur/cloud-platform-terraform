@@ -10,7 +10,18 @@ Threat model: actors, assets, trust boundaries, threats
 break-glass.md (экстренные права и audit trail)
 data-flows.md (для конкретных потоков данных, где enforcement применяется)
 modules/ и policies/ (реализация контролей, без копирования кода)
-_
+
+---
+
+Уровни защиты:
+
+1. ci/ Terraform syntax, tfsec / checkov — проверка кода и best-practice безопасность при планировании и применении Terraform.
+
+2. **policies/** — внутренние правила организации (business + platform), реализуемые через OPA, tfsec, checkov; не зависят от облачного провайдера.
+
+3. global/org-policies / SCP — финальный guardrail на уровне организации/аккаунта, запрещающий обход правил, применяемый независимо от Terraform.
+
+---
 
 threat model + controls
 actors

@@ -1386,6 +1386,109 @@ Apply:
 - OIDC — CI identity, без секретов, audit-friendly  
 - Auto-approve — повторное подтверждение не нужно, approval уже был в PR
 
+---
+
+## policies/
+
+Policy-as-code слой. Отвечает не за безопасность как таковую, а за соответствие внутренним правилам и стандартам компании.
+
+Состав:
+
+- `opa/` — политики “что запрещено” для Terraform (`terraform/*.rego`)  
+- `tfsec/` — правила сканирования безопасности для Terraform (`tfsec.yml`)  
+- `checkov/` — правила compliance и best practices (`checkov.yml`)
+
+Почему policies/ не в CI сразу полностью
+
+Best practice порядок зрелости:
+- CI должен работать стабильно
+- tfsec / checkov вычищены
+- Архитектура и политики безопасности закрепились
+- Только потом OPA включается как gate
+
+Итог
+policies/ — это:
+– правила компании
+– независимые от облака
+– расширяемые
+– применимые в CI и кластере после утверждения
+
+OPA — не сканер, а декларация власти.
+
+### policies/opa/
+
+Зачем отдельная изолированная директория OPA:
+
+– универсален
+– используется не только для Terraform
+– может применяться к: CI, admission controller, GitOps
+
+#### policies/opa/terraform/naming.rego
+
+Пояснение:
+– enforce naming convention
+– читаемые ресурсы
+– audit-friendly
+
+Это невозможно сделать tfsec’ом.
+
+#### policies/opa/terraform/tagging.rego
+
+Пояснение:
+– cost control
+– ownership
+– обязательные метаданные
+
+#### policies/opa/terraform/encryption.rego
+
+Пояснение:
+– encryption enforced на уровне политики
+– не зависит от конкретного модуля
+
+#### policies/opa/terraform/regions.rego
+
+Пояснение:
+– compliance
+– data residency
+– platform governance
+
+#### policies/opa/README.md
+
+Документация обязательна, иначе OPA превращается в хаос.
+
+### policies/tfsec/
+
+Почему tfsec:
+– быстрый
+– opinionated
+– минимально настраиваемый
+
+Мы не пишем правила, мы:
+– включаем / выключаем
+– настраиваем severity
+
+#### policies/tfsec/tfsec.yml
+
+Пояснение:
+– подстройка под компанию
+– подавление false-positive
+– управление шумом
+
+### policies/checkov/
+
+Почему Checkov:
+– enterprise-grade
+– богатая база правил
+– compliance frameworks
+
+#### policies/checkov/checkov.yml
+
+Пояснение:
+– запрещаем soft-fail
+– CI падает жёстко
+– security non-negotiable
+
+
 
 
 ---
