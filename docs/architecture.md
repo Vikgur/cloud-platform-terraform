@@ -921,6 +921,8 @@ Join workers
 – auditability
 – автоматизация
 
+---
+
 ## modules/access
 
 Слой идентификации и управления доступом.
@@ -1077,7 +1079,7 @@ Cloud IAM не управляет pod’ами.
 
 Иначе получится lockout.
 
-#### ### modules/access/rbac/
+### modules/access/rbac/
 
 Пояснение:
 – минимальные права
@@ -1086,7 +1088,7 @@ Cloud IAM не управляет pod’ами.
 
 ---
 
-## mmodules/observability
+## modules/observability
 
 Инфраструктурный слой наблюдаемости.
 
@@ -1243,8 +1245,146 @@ Backend для distributed tracing.
 – дешёвое хранение
 – масштаб без боли
 
+---
 
+# ci/
 
+Автоматизация, контроль и защита Terraform до `apply`.
+
+Состав:
+
+- `terraform-validate.yml` — проверка форматирования и синтаксиса (`fmt`, `validate`) на корректность
+- `terraform-plan.yml` — выполнение `plan` и сохранение артефактов для ревью на предмет того, что именно изменится
+- `terraform-apply.yml` — применение изменений только из protected branch  
+- `security-scan.yml` — статический анализ и политики безопасности (`tfsec`, `checkov`, `opa`)
+
+Каждый файл = отдельный security gate.
+
+Ни один change не должен:
+– попасть в main без проверки
+– примениться без ревью
+– нарушить security / policy
+
+Общая логика потока CI:
+PR открыт
+validate
+plan
+security
+review
+merge
+apply
+
+Если хоть один шаг падает —
+infra не меняется.
+
+DevSecOps-смысл CI
+
+CI выполняет роль:
+– policy enforcer
+– security guard
+– infra gatekeeper
+
+Итог
+
+ci/ — это:
+– обязательный слой
+– не опциональный
+– не ускорение
+– а защита
+
+Без него Terraform = root-доступ.
+
+## ci/terraform-validate.yml
+
+Базовая техническая корректность.
+
+Ловит:
+– синтаксические ошибки
+– некорректные провайдеры
+– сломанные модули
+
+Запускается на каждом PR.
+
+Пояснения по шагам:
+
+- `terraform fmt -check -recursive` — единый стиль, без форматного шума в PR, обязательная практика
+- `terraform init -backend=false` — безопасно для PR, без доступа к backend и state
+- `terraform validate` — проверка синтаксиса, модулей и базовой логики
+
+Почему отдельный CI:
+Validation ≠ Plan.  
+Validation быстрый и дешёвый, должен падать первым.
+
+## ci/terraform-plan.yml
+
+Показывает что именно изменится.
+Infra-review — как code-review.
+
+Без plan:
+– изменения вслепую
+– невозможно оценить риск
+
+Когда запускается:
+– только PR
+– до merge
+– без apply
+
+Пояснения по шагам:
+
+- `permissions / id-token` — подготовка под OIDC, без long-lived secrets, enterprise-стандарт
+- `terraform init` (with backend) — реальный state, план максимально близок к бою
+- `terraform plan` — reviewer видит diff, инфраструктура становится читаемой
+
+Почему без apply:
+Plan — информация, не действие.  
+Apply — только после контроля.
+
+## ci/security-scan.yml
+
+DevSecOps gate.
+Ищет опасные паттерны, даже если Terraform валиден.
+
+Ловит:
+– public resources
+– отсутствие encryption
+– overly permissive IAM
+
+Инструменты:
+– tfsec
+– checkov
+– OPA (через `policies/opa`)
+
+Это defense-in-depth, а не один сканер.
+
+Пояснения:
+
+- `tfsec` — быстрый, opinionated, первый барьер безопасности  
+- `checkov` — enterprise rules, cloud-specific, compliance-ready  
+
+Почему отдельный CI:
+Security ≠ correctness.  
+Должен развиваться отдельно, падать независимо и быть обязательным.
+
+## ci/terraform-apply.yml
+
+Единственная точка применения infra.
+
+Apply:
+– только из main
+– только после merge
+– только через CI
+
+**Никакого terraform apply локально.**
+
+Когда запускается:
+– push в main
+– после всех checks
+
+Пояснения:
+
+- Только `main` — защищённая ветка, PR + review обязательны  
+- OIDC — CI identity, без секретов, audit-friendly  
+- Auto-approve — повторное подтверждение не нужно, approval уже был в PR
 
 
 

@@ -34,14 +34,10 @@ global/iam/attach.tf
 global/iam/break-glass.tf
 global/org-policies/{guardrails.tf,quotas.tf,scp.tf}
 modules/access/{outputs.tf,variables.tf,main.tf}
-modules/access/iam/main.tf
-modules/access/oidc/main.tf
-modules/access/rbac/main.tf
+modules/access/{iam,oidc,rbac}/main.tf
 modules/network/{outputs.tf,variables.tf,main.tf}
 modules/observability/{outputs.tf,variables.tf,main.tf}
-modules/observability/logging/main.tf
-modules/observability/monitoring/main.tf
-modules/observability/tracing/main.tf
+modules/observability/{logging,monitoring,tracing}/main.tf
 modules/security/{outputs.tf,variables.tf,main.tf}
 modules/compute/{outputs.tf,variables.tf,main.tf}
 modules/kubernetes/{outputs.tf,variables.tf,main.tf}
