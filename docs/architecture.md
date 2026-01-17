@@ -24,6 +24,8 @@ _
 
 # global/
 
+Инфраструктура для хранения. Секрет уровня infra-root.
+
 Назначение: общие ресурсы организации. Создаются один раз.
 
 ## global/backend
@@ -348,7 +350,7 @@ IAM не может обойти SCP
 
 # modules/
 
-Назначение: переиспользуемая бизнес-логика. Основа всего.
+Переиспользуемая бизнес-логика. Основа всего проекта.
 
 ## modules/shared
 
@@ -1590,7 +1592,7 @@ DevSecOps-смысл scripts/
 
 ---
 
-## global/iam/ai-roles/
+# global/iam/ai-roles/
 
 AI-специфичные IAM-роли.
 
@@ -1678,6 +1680,81 @@ OIDC only. Без static secrets.
 
 ---
 
+# modules/
+
+Переиспользуемая бизнес-логика. Основа всего проекта.
+
+## modules/compute/gpu/
+
+Выделенный GPU foundation-слой.
+GPU — привилегированный ресурс, а не обычный compute.
+
+**Состав:**
+
+- `main.tf` — создание и конфигурация GPU-инфраструктуры
+- `variables.tf` — параметры типов GPU, квот и режимов использования
+- `outputs.tf` — экспорт GPU-ресурсов для вышестоящих модулей
+
+**Решает задачи:**
+- централизованное управление GPU-ресурсами
+- изоляция GPU как отдельного trust-domain
+- контроль доступа и масштабирования
+
+**Архитектурная роль:**
+- Используется в `ai/training/` и `ai/inference/`.  
+- Не знает ничего про датасеты, модели и namespaces.  
+- Содержит только инфраструктуру.
+
+**DevSecOps-смысл `modules/compute/gpu/`:**
+
+- GPU = привилегированный ресурс (device + memory access)
+- Компрометация GPU-ноды критичнее CPU
+- Запрет смешивания с general-purpose compute
+- GPU доступны только для training / inference
+- Enforcement квот выше уровня Kubernetes
+- Явная видимость: где GPU, зачем и кем созданы
+- Доказуемое отсутствие GPU в data-only зонах
+- Привязка GPU к region / zone учитывается архитектурно
+- Изоляция упрощает jurisdiction control
+- Разделение compute plane и data plane
+
+**Best practices:**
+- GPU рассматривается как sensitive infrastructure
+- Нет неявного доступа к GPU
+- IAM и compute разделены
+- Чёткая граница foundation vs AI
+- Готовность к quota и policy enforcement
+
+**Итог:**
+
+`modules/compute/gpu/`:
+- не AI-модуль  
+- не k8s-модуль  
+- foundation-слой для безопасного AI compute
+
+### modules/compute/gpu/main.tf
+
+Назначение
+Управление GPU-capable compute (ASG / node group / instance profile).
+
+Пояснение
+GPU вынесен в отдельный template
+IMDSv2 обязателен
+Нет shared instance profile
+
+### modules/compute/gpu/variables.tf
+
+Пояснение
+Тип GPU — явный
+IAM профиль передаётся сверху (через foundation IAM)
+
+### modules/compute/gpu/outputs.tf
+
+Пояснение
+Используется Kubernetes node-pools
+Нет прямых связей с AI-логикой
+
+---
 
 
 
