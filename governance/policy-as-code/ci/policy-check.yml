@@ -1,0 +1,11 @@
+name: AI Governance Policy Check
+
+on: [pull_request]
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run OPA policies
+        run: opa test governance/policy-as-code

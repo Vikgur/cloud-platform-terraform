@@ -8,7 +8,10 @@ modules/kubernetes/ai-node-pools
 modules/kubernetes/runtime-constraints
 policies/{opa,tfsec,checkov}/ai
 ai/{network,data,model-registry,training,inference}
+governance/{policy-as-code,audit-rules,exception-workflows,compliance-mappings,decision-logs}
+governance/policy-as-code/{opa,terraform,ci}
 )
+
 
 for d in "${dirs[@]}"; do
   mkdir -p "$d"
@@ -28,6 +31,10 @@ ai/data/{datasets.tf,access.tf,encryption.tf,lifecycle.tf,variables.tf,outputs.t
 ai/model-registry/{models.tf,access.tf,encryption.tf,versioning.tf,variables.tf,outputs.tf}
 ai/training/{namespace.tf,quotas.tf,network.tf,access.tf,variables.tf,outputs.tf}
 ai/inference/{namespace.tf,access.tf,network.tf,runtime.tf,variables.tf,outputs.tf}
+governance/policy-as-code/opa/{ai-network.rego,ai-data.rego,ai-models.rego,ai-training.rego,ai-inference.rego,ai-promotion.rego}
+governance/policy-as-code/terraform/{mandatory-encryption.rego,no-public-ai.rego,region-lock.rego}
+governance/policy-as-code/ci/policy-check.yml
+governance/policy-as-code/README.md
 )
 
 for f in "${files[@]}"; do

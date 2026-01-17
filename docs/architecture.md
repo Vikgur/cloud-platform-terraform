@@ -2502,11 +2502,270 @@ AI-specific network restrictions поверх готовой network foundation.
 
 ---
 
+# governance/
 
+Слой управления и принудительного контроля: политики, ограничения и проверки, обеспечивающие соответствие требованиям безопасности, комплаенса и суверенитета, с централизованным enforcement-уровнем для AI-инфраструктуры и процессов.
 
+## governance/policy-as-code/
 
+Централизованное Security и Governance управление Sovereign AI.  
+Определяет, какие AI-конфигурации разрешены, какие запрещены, как политика enforced и как платформа доказывает compliance.
+
+**Состав:**
+
+- `opa/` — логические политики для AI-доменов  
+- `terraform/` — базовые enforcement-политики Terraform    
+- `ci/policy-check.yml` — проверка политик в CI  
+- `README.md` — описание правил и модели управления
+
+**Решает задачи:**
+- формализация допустимых и запрещённых AI-паттернов  
+- централизованный enforcement политик  
+- CI-блокировка merge и apply  
+- единые правила для dev и prod
+
+**Архитектурная роль:**
+- верхний контрольный слой  
+- infra + ai overlays → governance enforcement  
+- не security scan и не best-effort  
+- обязательные, platform-level правила
+
+**DevSecOps-смысл `governance/policy-as-code/`:**
+- превращает требования и регуляторику в код  
+- делает AI auditable и доказуемым  
+- устраняет ручные approval-процессы  
+- демонстрирует зрелость sovereign-подхода
+
+**Best practices:**
+- governance отделена от инфраструктуры  
+- AI-правила формализованы, не в головах  
+- deny-rules → enforceable sovereignty  
+- CI-gated → отсутствие shadow AI  
+- платформа управляет риском, не команды
+
+**Итог:**
+
+`governance/policy-as-code/`:
+- не security scan  
+- не checklist  
+- AI-constitution, enforced платформой
 
 ---
+
+### governance/policy-as-code/opa/
+
+OPA-слой для AI-aware governance.  
+Контролирует **смысл и намерения действий**, а не только факт существования ресурсов. Делает governance исполняемым на runtime-уровне.
+
+**Состав:**
+
+- `ai-network.rego` — intent-контроль сетевых границ AI  
+- `ai-data.rego` — правила изоляции и доступа к данным  
+- `ai-models.rego` — защита моделей и контроль жизненного цикла  
+- `ai-training.rego` — enforcement ограничений training-зоны  
+- `ai-inference.rego` — правила безопасного inference-serving  
+- `ai-promotion.rego` — контроль продвижения модели между зонами  
+
+**Решает задачи:**
+- контроль runtime intent, а не деклараций  
+- enforcement trust boundaries между data / training / inference  
+- запрет обходных путей и implicit trust  
+- блокировка опасных состояний даже при формально валидных ресурсах  
+
+**Архитектурная роль:**
+- runtime governance слой  
+- infra + ai overlays → intent enforcement  
+- работает после IAM, namespaces и RBAC  
+- governance встроен в исполнение, не в документацию  
+
+**DevSecOps-смысл `opa/`:**
+- переводит AI-governance из договорённостей в код  
+- делает lifecycle AI auditable и управляемым  
+- устраняет ручные интерпретации правил  
+- повышает устойчивость после компрометации  
+
+**Best practices:**
+- AI-зоны разделены на уровне intent  
+- promotion flow контролируется, не декларативный  
+- отсутствует implicit trust между training и inference  
+- governance enforced в runtime  
+- sovereign-by-design подход  
+
+**Итог:**
+
+`opa/`:
+- не просто admission-контроллер  
+- policy-engine жизненного цикла AI  
+- enforceable governance на уровне смысла действий
+
+#### governance/policy-as-code/opa/ai-network.rego
+
+Назначение
+Запрет публичного сетевого доступа для AI.
+
+Пояснение
+deny-by-default
+public доступ только через явный approval
+защита inference по умолчанию
+
+#### governance/policy-as-code/opa/ai-data.rego
+
+Назначение
+Защита датасетов и контроль их использования.
+
+Пояснение
+запрет shared datasets
+защита от data poisoning
+
+#### governance/policy-as-code/opa/ai-models.rego
+
+Назначение
+Контроль моделей, используемых в inference.
+
+Пояснение
+запрет shadow models
+модель = управляемый артефакт
+
+#### governance/policy-as-code/opa/ai-training.rego
+
+Назначение
+Изоляция training-нагрузок.
+
+Пояснение
+enforce node isolation
+training ≠ общий compute
+
+#### governance/policy-as-code/opa/ai-inference.rego
+
+Назначение
+Ограничение runtime для inference.
+
+Пояснение
+минимальные runtime-права
+защита от RCE
+
+#### governance/policy-as-code/opa/ai-promotion.rego
+
+Назначение
+Запрет прямого доступа inference к training.
+
+Пояснение
+promotion только через model registry
+запрет bypass MLOps pipeline
+
+---
+
+### governance/policy-as-code/terraform/
+
+Terraform-уровень governance.  
+Глобальные жёсткие запреты, не зависящие от AI-логики и Kubernetes.
+
+**Состав:**
+
+- `mandatory-encryption.rego` — обязательное шифрование ресурсов  
+- `no-public-ai.rego` — запрет публичного доступа  
+- `region-lock.rego` — жёсткая региональная фиксация  
+
+**Решает задачи:**
+- фиксация красных линий (encryption, public access, region)  
+- enforcement sovereign-требований на уровне Terraform plan  
+- остановка ошибки до создания ресурса  
+- одинаковое применение для всех окружений  
+
+**Архитектурная роль:**
+- infra-level guardrail  
+- применяется до AI-модулей и Kubernetes  
+- не зависит от intent и runtime  
+- Terraform → cloud boundary  
+
+**DevSecOps-смысл `terraform/`:**
+- вводит infrastructure law, а не рекомендации  
+- устраняет “случайные” конфигурации  
+- исключает обход через higher-level слои  
+- снижает юридические и security-риски  
+
+**Best practices:**
+- sovereign требования enforced на infra-уровне  
+- region / encryption / exposure не обходятся  
+- AI governance отделён от infra guardrails  
+- Terraform не считается доверенным по умолчанию  
+
+**Итог:**
+
+`terraform/`:
+- последний рубеж до облака  
+- блокирует критические риски  
+- обязателен для regulated / sovereign environments
+
+#### governance/policy-as-code/terraform/mandatory-encryption.rego
+
+Пояснение
+– запрет незашифрованных buckets
+– применяется ко всем data / model storage
+
+#### governance/policy-as-code/terraform/no-public-ai.rego
+
+Пояснение
+– никакого public inference по ошибке
+– защита сетевого периметра
+
+#### governance/policy-as-code/terraform/region-lock.rego
+
+Пояснение
+– контроль юрисдикции
+– защита sovereign-требований
+
+---
+
+### governance/policy-as-code/ci/
+
+CI-уровень enforcement политик.  
+Никакого merge без прохождения governance.
+
+**Состав:**
+
+- `policy-check.yml` — запуск OPA / policy checks в CI  
+
+**Решает задачи:**
+- превращает политики в merge-gate  
+- исключает человеческий фактор  
+- обеспечивает непрерывный аудит  
+- блокирует небезопасные изменения до merge  
+
+**Архитектурная роль:**
+- shift-left governance  
+- enforcement на уровне delivery pipeline  
+- CI → gate между кодом и платформой  
+- не optional, не advisory  
+
+**DevSecOps-смысл `ci/`:**
+- делает governance обязательным условием изменений  
+- устраняет ручные approval и исключения  
+- превращает безопасность в часть delivery  
+- фиксирует audit trail автоматически  
+
+**Best practices:**
+- governance enforced до деплоя  
+- невозможен human bypass  
+- политики — часть pipeline, не документации  
+- audit появляется по умолчанию  
+
+**Итог:**
+
+`ci/`:
+- governance встроен в разработку  
+- безопасность проверяется до merge  
+- соответствует enterprise / regulated AI pipelines
+
+#### governance/policy-as-code/ci/policy-check.yml
+
+Пояснение
+– политики проверяются при каждом PR
+– человек не может обойти guardrails
+
+---
+
+
 
 ДОПОЛНИТЬ с учетом добавления папок и файлов Sovereign AI
 ### Итоговая картина по всем слоям 
