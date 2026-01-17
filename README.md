@@ -343,11 +343,33 @@ Low-level detection misconfigurations в Terraform.
 
 Инфраструктурный слой AI-нагрузок: изолированное выполнение обучения и инференса, контролируемый доступ к данным и моделям, чёткое разделение data plane и compute plane для обеспечения суверенитета, воспроизводимости и управляемости AI-систем.
 
+**3.1 Наполнение ai/network/**
+
+AI-specific network restrictions поверх готовой network foundation.  
+Управляет, куда AI workloads могут ходить, куда нет, и предотвращает data exfiltration.
+
+**Решает задачи:**
+- изоляция AI workloads на уровне сети
+- контроль egress и предотвращение утечек данных
+- разделение правил для training и inference
+
+**3.2 Наполнение ai/data/**
+
+
+**3.3 Наполнение ai/model-registry/**
+
+
+**3.4. Наполнение ai/training/**
+
+
+**3.5 Наполнение ai/inference/**
+
+
 **4. Sovereign AI слой Governance/enforcement (governance/*)**
 
 Слой управления и принудительного контроля: политики, ограничения и проверки, обеспечивающие соответствие требованиям безопасности, комплаенса и суверенитета, с централизованным enforcement-уровнем для AI-инфраструктуры и процессов.
 
-
+4.1 Наполнение 
 
 
 
@@ -415,6 +437,7 @@ CI/CD пайплайны.
 - apply.sh — контролируемый apply
 - architecture_bootstrap.sh — создание структуры каталогов проекта
 - ai_architecture_bootstrap.sh — добавление каталогов проекта под AI
+
 
 
 ### .terraform-version

@@ -2072,6 +2072,81 @@ defence in depth
 
 ---
 
+# ai/
+
+Инфраструктурный слой AI-нагрузок: изолированное выполнение обучения и инференса, контролируемый доступ к данным и моделям, чёткое разделение data plane и compute plane для обеспечения суверенитета, воспроизводимости и управляемости AI-систем.
+
+---
+
+## ai/network/
+
+AI-specific network restrictions поверх готовой network foundation.  
+Управляет, куда AI workloads могут ходить, куда нет, и предотвращает data exfiltration.
+
+**Состав:**
+
+- `egress-policy.tf` — правила deny-by-default egress и разрешённые endpoints  
+- `variables.tf` — параметры VPC, subnet, SG и training/inference rules  
+- `outputs.tf` — экспорт идентификаторов и правил для других модулей
+
+**Решает задачи:**
+- изоляция AI workloads на уровне сети
+- контроль egress и предотвращение утечек данных
+- разделение правил для training и inference
+
+**Архитектурная роль:**
+- policy overlay поверх network foundation
+- не создаёт VPC или routing, только trust boundary
+- network foundation → ai/network overlay
+- zone повышенного риска, где политики меняются чаще, чем infra
+
+**Почему это отдельный AI-модуль:**
+Потому что:
+- egress для AI ≠ egress для приложений
+- политики меняются чаще infra
+- это зона повышенного риска
+
+**DevSecOps-смысл:**
+- закрывает главный AI-risk — утечку данных  
+- делает network policy управляемой  
+- интегрируется с policy-as-code  
+- не ломает foundation
+
+**Итог:**
+
+`ai/network/`:
+- не VPC  
+- не routing  
+- AI trust boundary поверх сети
+
+### ai/network/variables.tf
+
+Пояснение:
+– только входные контракты
+– никакой самодеятельности
+– environment-aware
+
+### ai/network/egress-policy.tf
+
+Пояснение:
+– deny-by-default достигается пустым allow-list
+– разрешения добавляются явно
+– SG можно применять к node group / pod ENI
+
+### ai/network/outputs.tf
+
+Пояснение:
+– используется в:
+– ai/training
+– ai/inference
+– governance checks
+
+---
+
+
+
+
+
 
 
 
