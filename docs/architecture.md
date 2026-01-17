@@ -16,6 +16,12 @@ decision-driven (почему так)
 AI Cloud Architecture (GPU, data zones, trust boundaries)
 _
 
+# 1 этап: ДО внедрения Sovereign AI-слоя
+
+Базовая Terraform-архитектура cloud-platform для enterprise-уровня на AWS: проектирование и развертывание Kubernetes-кластера (3 master / 50+ worker) с упором на безопасность, масштабируемость, отказоустойчивость и управляемость, без AI-специфичных доменов, но с готовностью к расширению.
+
+---
+
 # global/
 
 Назначение: общие ресурсы организации. Создаются один раз.
@@ -1488,51 +1494,230 @@ OPA — не сканер, а декларация власти.
 – CI падает жёстко
 – security non-negotiable
 
+---
+
+# scripts/
+
+Операционная автоматизация Terraform и инфраструктуры.
+
+Состав:
+
+- `init.sh` — создаёт backend, если его нет, и инициализирует Terraform окружение  
+- `plan.sh` — выполняет унифицированный plan для любого окружения, логирует diff в файл для ревью  
+- `apply.sh` — безопасное применение изменений только после plan, полностью идемпотентный
+- `architecture_bootstrap.sh` — создание основной структуры проекта до внедрения Sovereign AI слоя
+- `ai_architecture_bootstrap.sh` — создание дополненной структуры проекта после внедрения Sovereign AI слоя
+
+Решает задачи:
+– bootstrapping backend
+– подготовка окружения
+– унифицированный plan/apply workflow
+– безопасное применение изменений
+
+Архитектурная роль
+
+Best practices:
+Не давать людям прямой доступ к Terraform CLI
+Поднимать backend / state / lock table
+Унифицировать переменные окружения
+Минимизировать человеческие ошибки
+
+Принцип: скрипт = повторяемая операция, idempotent.
+
+DevSecOps-смысл scripts/
+
+– снимают нагрузку с людей
+– предотвращают ошибки в state / lock / backend
+– обеспечивают repeatable workflow
+– интегрируются с CI и GitOps
+
+Скрипты — это не замена CI, а:
+- расширение DevSecOps-потока.
+- делают процессы повторяемыми и безопасными.
+
+## scripts/init.sh
+
+Назначение:
+– создаёт backend, если его нет
+– инициализирует Terraform окружение
+
+Пояснения:
+– || true — не падаем, если уже создано
+– DynamoDB lock — предотвращает race condition
+– TF_WORKSPACE — environment isolation
+– backend-config — привязка state к окружению
+
+## scripts/plan.sh
+
+Назначение:
+– унифицированный plan для любого окружения
+– логирует diff в файл для ревью
+
+Пояснения:
+– workspace isolate state по окружению
+– -out=tfplan — безопасный артефакт
+– можно использовать для CI и ручной проверки
+
+## scripts/apply.sh
+
+Назначение:
+– безопасное применение изменений
+– только после plan
+– idempotent
+
+Пояснения:
+– применяем только ранее сгенерированный план
+– предотвращает «вслепую» изменения
+– workflow: init → plan → apply
+
+---
+
+# 2 этап: внедрение Sovereign AI-слоя
+
+Поверх базовой платформы добавляется модульный Sovereign AI-слой: изолированные AI-нагрузки, разделение data / training / inference / CI, governance и enforcement-механизмы, обеспечивающие суверенитет данных, минимальный blast radius и соответствие enterprise-требованиям к безопасности и комплаенсу.
+
+**1. Foundation-расширения для AI**
+
+Базовый слой IAM и инфраструктурных примитивов для AI-нагрузок: строгая сегрегация ролей и доступов между данными, обучением, инференсом и CI, минимизация blast radius и отсутствие shared-roles как обязательное условие безопасного и масштабируемого AI-стека.
+
+**3. Sovereign AI слой (ai/*)**
+
+Инфраструктурный слой AI-нагрузок: изолированное выполнение обучения и инференса, контролируемый доступ к данным и моделям, чёткое разделение data plane и compute plane для обеспечения суверенитета, воспроизводимости и управляемости AI-систем.
+
+**4. Sovereign AI слой Governance/enforcement (governance/*)**
+
+Слой управления и принудительного контроля: политики, ограничения и проверки, обеспечивающие соответствие требованиям безопасности, комплаенса и суверенитета, с централизованным enforcement-уровнем для AI-инфраструктуры и процессов.
+
+---
+
+## global/iam/ai-roles/
+
+AI-специфичные IAM-роли.
+
+Состав:
+
+- `data-access.tf` — доступ к данным и хранилищам
+- `training.tf` — роли для обучения моделей
+- `inference.tf` — роли для инференса и runtime-доступа
+- `mlops-ci.tf` — роли CI для MLOps-пайплайнов
+
+Решает задачи:
+- жёсткое разделение data / training / inference / CI
+- минимальный blast radius
+- отсутствие shared-roles
+
+Архитектурная роль:
+На него ссылаются ai/*, но он не зависит от них.
+
+DevSecOps-смысл `global/iam/ai-roles/`:
+
+- Разделение data / training / inference / CI по разным trust-domain  
+- Предотвращение lateral movement между training → inference  
+- Исключение утечек датасетов через serving  
+- Запрет использования CI как runtime  
+- Минимизация blast radius при компрометации роли  
+- IAM как первая линия защиты (до k8s)  
+- Zero Trust: одна роль = один intent  
+- Аудит читается по именам ролей  
+- Separation of duties (SOC2 / ISO)  
+- Трассируемый доступ: data vs models (AI Act)  
+- Контроль data plane отдельно от compute plane (Sovereign AI)
+
+Best practices:
+Чёткое разделение trust domains
+Нет универсальной AI-роли
+IAM живёт ниже Kubernetes
+CI ≠ runtime ≠ data
+Соответствует zero-trust и sovereign AI
+
+Итог
+global/iam/ai-roles/ — обязательный foundation-слой.
+Без него ai/* считается небезопасным.
+
+### global/iam/ai-roles/data-access.tf
+
+Назначение
+Доступ только к datasets и model artifacts (read / controlled write).
+
+Смысл
+– нет compute
+– нет network
+– только данные
+
+### global/iam/ai-roles/training.tf
+
+Назначение
+Изолированная роль для training workloads.
+
+Смысл
+– может читать data
+– может писать model artifacts
+– не может serving
+
+### global/iam/ai-roles/inference.tf
+
+Назначение
+Минимальная runtime-роль для inference.
+
+Смысл
+– read-only models
+– no training
+– no datasets write
+
+### global/iam/ai-roles/mlops-ci.tf
+
+Назначение
+CI / GitOps для AI (build, scan, promote).
+OIDC only. Без static secrets.
+
+Смысл
+– image build
+– model signing
+– registry promotion
+– no runtime access
+
+---
+
+
 
 
 
 ---
 
-### Итоговая картина
+ДОПОЛНИТЬ с учетом добавления папок и файлов Sovereign AI
+### Итоговая картина по всем слоям 
 
-global/backend
-– где хранится state
+**Документация**  
+- `docs/` — архитектура, модели безопасности, workflows, состояние backend  
 
-global/iam
-– кто имеет право его менять
-Без global/iam:
-– Terraform = опасный скрипт
-С global/iam:
-– Terraform = управляемая платформа
+**Global слои**  
+- `global/backend` — где хранится state  
+- `global/iam/policies` — кто и как может менять инфраструктуру  
+- `global/org-policies` — что никогда нельзя делать, guardrails и quotas  
 
-global/backend — где state
-global/iam — кто может менять infra
-global/org-policies — что никогда нельзя делать
+**Сеть и безопасность**  
+- `modules/network/{vpc,subnets,nat,routing}` — куда подключаются ноды, маршрутизация  
+- `modules/security/{security-groups,nsg,firewall}` — кто с кем может общаться, ограничения трафика  
 
-Границы ответственности
+**Вычислительные ресурсы и Kubernetes**  
+- `modules/compute/{master-node,worker-node,autoscaling,launch-templates}` — какие ноды существуют и как масштабируются  
+- `modules/kubernetes/{control-plane,node-groups,cni,bootstrap,templates}` — зачем кластеры нужны, как VM объединяются в кластер  
 
-modules/network
-– куда ноды подключаются
+**Хранилище и наблюдаемость**  
+- `modules/storage/{block,object,backups}` — куда и как сохраняются данные  
+- `modules/observability/{logging,monitoring,tracing}` — сбор логов, метрик, трассировка  
 
-modules/security
-– кто с кем говорит
+**Управление доступом и стандарты**  
+- `modules/access/{iam,oidc,rbac}` — идентификация, SSO, роли, binding’и  
+- `modules/shared/{labels,naming,tags}` — единые стандарты именования и тегирования  
+- `policies/{opa,tfsec,checkov}` — policy-as-code, security и compliance правила  
 
-modules/compute
-– какие ноды существуют
+**Окружения**  
+- `environments/{dev,stage,prod}` — изоляция и конфигурации для разных стадий жизненного цикла  
 
-modules/kubernetes
-– зачем они существуют
+**CI/CD и скрипты**  
+- `ci/` — пайплайны Terraform и security scan  
+- `scripts/` — вспомогательные скрипты init/plan/apply/infra bootstrap
 
-Границы ответственности
-
-modules/compute
-– VM существуют
-
-modules/security
-– им разрешено общаться
-
-modules/kubernetes
-– VM становятся кластером
-
-gitops/*
-– кластер начинает жить
+**GitOps и жизненный цикл**  
+- Сочетание `modules/*`, `environments/*` и `ci/` позволяет кластеру и приложениям жить по GitOps принципам
