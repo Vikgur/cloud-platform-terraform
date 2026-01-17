@@ -1,0 +1,13 @@
+metadata:
+  id: AI_NETWORK_001
+  name: AI workloads must not be publicly exposed
+  category: network
+definition:
+  cond_type: attribute
+  resource_types:
+    - aws_lb
+    - aws_alb
+    - aws_elb
+  attribute: internal
+  operator: equals
+  value: true

@@ -1920,6 +1920,158 @@ dev ≠ prod
 
 ---
 
+# policies/{opa,checkov,tfsec}/ai/
+
+Policy-as-Code для AI-инфраструктуры.  
+Не «best practice», а enforcement.
+
+**Состав:**
+
+- `opa/ai/` — intent-level enforcement для AI workloads  
+- `checkov/ai/` — baseline hygiene и enterprise-проверки  
+- `tfsec/ai/` — проверка безопасных конфигураций Terraform  
+
+**Решает задачи:**
+- запрет опасных конфигураций на уровне AI-инфраструктуры
+- обеспечение согласованности с foundation Terraform и ai/*, governance/*
+- CI-blocking и audit-friendly enforcement
+
+**Архитектурная роль:**
+- Security guardrails поверх foundation, ai/* и governance/*
+- Не создают ресурсы, только запрещают небезопасные действия
+
+**Best practices:**
+- Политики слоистые, без дублирования
+- OPA = intent-level enforcement
+- Checkov / tfsec = baseline hygiene
+- AI-specific rules, не generic
+
+**Итог:**
+
+`policies/{opa,checkov,tfsec}/ai/`:
+- обязательный security layer  
+- enforce sovereign AI constraints  
+- CI-blocking и audit-friendly
+
+---
+
+## policies/opa/ai/
+
+Логическая политика для AI-инфраструктуры.  
+Контекст-aware правила: intent, trust-zone, AI semantics.
+
+**Состав:**
+
+- `no-public-ai.rego` — запрет публичного доступа к AI-ресурсам  
+- `ai-data-isolation.rego` — изоляция данных между trust-domain  
+- `ai-gpu-restrictions.rego` — ограничения использования GPU для AI
+
+**Решает задачи:**
+- enforcement intent и trust-zone для AI workloads
+- предотвращение обхода политик без явного override
+- прозрачность security logic для reviewer
+
+**Архитектурная роль:**
+- OPA = центральный слой логических guardrails
+- Не создаёт ресурсы, только запрещает опасные конфигурации
+- Работает поверх foundation Terraform, ai/* и governance/*
+
+**DevSecOps-смысл (OPA):**
+- политики читают intent, а не только ресурс
+- сложно обойти без явного override
+- reviewer видит security logic
+
+### policies/opa/ai/no-public-ai.rego
+
+Пояснение
+AI не должен иметь public entrypoint
+Inference ≠ Internet-facing by default
+
+### policies/opa/ai/ai-data-isolation.rego
+
+Пояснение
+encryption mandatory
+data plane контролируется политикой
+
+### policies/opa/ai/ai-gpu-restrictions.rego
+
+Пояснение
+предотвращает accidental scheduling
+GPU = privileged
+
+---
+
+## policies/checkov/ai/
+
+Static security checks для Terraform.  
+Быстро, стандартизированно, автоматически.
+
+**Состав:**
+
+- `ai_encryption.yaml` — проверка шифрования данных и storage  
+- `ai_network.yaml` — проверка сетевых правил и изоляции AI workloads
+
+**Решает задачи:**
+- раннее выявление небезопасных конфигураций
+- стандартизация security в Terraform
+- снижение риска misconfiguration
+
+**Архитектурная роль:**
+- Быстрый layer security поверх foundation и ai/*  
+- Не создаёт ресурсы, только проверяет конфигурации  
+
+**DevSecOps-смысл (Checkov):**
+- быстрый feedback в CI  
+- дешёвый security  
+- снижает шум для OPA-политик
+
+### policies/checkov/ai/ai_encryption.yaml
+
+Пояснение
+– Обеспечивает обязательное шифрование всех AI-ресурсов (например, S3 buckets для датасетов и моделей).
+– Проверяет Terraform-конфигурацию ещё на этапе планирования, не допуская создания незашифрованных хранилищ.
+– Дополняет OPA ai-data-isolation.rego, создавая многоуровневую защиту данных.
+
+### policies/checkov/ai/ai_network.yaml
+
+Пояснение
+– запрещает public load balancers для AI workloads
+– блокирует ошибочную настройку на Terraform-уровне
+– дополняет OPA no-public-ai.rego, ловит misconfig раньше
+
+---
+
+## policies/tfsec/ai/
+
+Low-level detection misconfigurations в Terraform.  
+Особенно полезен для storage и network.
+
+**Состав:**
+
+- `ai-storage.toml` — проверка конфигураций хранилищ для AI workloads
+
+**Решает задачи:**
+- раннее выявление low-level misconfigurations
+- защита storage и network в AI-инфраструктуре
+- минимизация ошибок при deployment
+
+**Архитектурная роль:**
+- Быстрый guardrail поверх foundation и ai/*  
+- Не создаёт ресурсы, только проверяет конфигурации  
+
+**DevSecOps-смысл (tfsec):**
+- быстрый guardrail  
+- минимальные false-positive  
+- audit-friendly, легко читается
+
+## policies/tfsec/ai/ai-storage.toml
+
+Пояснение
+ловит базовые ошибки
+defence in depth
+
+---
+
 
 
 

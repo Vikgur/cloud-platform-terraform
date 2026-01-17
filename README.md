@@ -299,7 +299,45 @@ GPU — привилегированный ресурс, а не обычный 
 
 **2.5 Наполнение policies/{opa,checkov,tfsec}/ai/**
 
+Policy-as-Code для AI-инфраструктуры.  
+Не «best practice», а enforcement.
 
+**Решает задачи:**
+- запрет опасных конфигураций на уровне AI-инфраструктуры
+- обеспечение согласованности с foundation Terraform и ai/*, governance/*
+- CI-blocking и audit-friendly enforcement
+
+**2.5.1 Наполнение policies/opa/ai/**
+
+Логическая политика для AI-инфраструктуры.  
+Контекст-aware правила: intent, trust-zone, AI semantics.
+
+**Решает задачи:**
+- enforcement intent и trust-zone для AI workloads
+- предотвращение обхода политик без явного override
+- прозрачность security logic для reviewer
+
+**2.5.2 Наполнение policies/checkov/ai/**
+
+Static security checks для Terraform.  
+Быстро, стандартизированно, автоматически.
+
+**Решает задачи:**
+- раннее выявление небезопасных конфигураций
+- стандартизация security в Terraform
+- снижение риска misconfiguration
+
+**2.5.3 Наполнение policies/tfsec/ai/**
+
+## policies/tfsec/ai/
+
+Low-level detection misconfigurations в Terraform.  
+Особенно полезен для storage и network.
+
+**Решает задачи:**
+- раннее выявление low-level misconfigurations
+- защита storage и network в AI-инфраструктуре
+- минимизация ошибок при deployment
 
 **3. Sovereign AI слой (ai/*)**
 

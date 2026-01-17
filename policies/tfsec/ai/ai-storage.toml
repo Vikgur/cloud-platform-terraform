@@ -1,0 +1,6 @@
+[[rule]]
+id = "AI_STORAGE_001"
+description = "AI storage must not be public"
+severity = "HIGH"
+resource = "aws_s3_bucket"
+check = "not public"

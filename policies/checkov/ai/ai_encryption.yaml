@@ -1,0 +1,10 @@
+metadata:
+  id: AI_ENCRYPTION_1
+  name: AI resources must be encrypted
+  category: encryption
+definition:
+  cond_type: attribute
+  resource_types:
+    - aws_s3_bucket
+  attribute: server_side_encryption_configuration
+  operator: exists
