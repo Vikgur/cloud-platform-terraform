@@ -1836,6 +1836,91 @@ AI CPU ≠ general workloads
 используются ai/training и ai/inference
 экспортируется контракт, не реализация
 
+---
+
+## modules/kubernetes/runtime-constraints/
+
+Жёсткие ограничения runtime-поведения AI-workloads.  
+Даже при компрометации pod — минимальный ущерб.
+
+**Состав:**
+
+- `device-plugin.tf` — контролируемый доступ к GPU-устройствам
+- `seccomp.tf` — syscall-ограничения для AI-workloads
+- `variables.tf` — параметры профилей и режимов применения
+- `outputs.tf` — экспорт идентификаторов runtime-профилей
+
+**Решает задачи:**
+- ограничение привилегий на уровне runtime
+- централизованный контроль доступа к GPU
+- устранение небезопасных ad-hoc runtime-настроек
+
+**Архитектурная роль:**
+- Foundation security-слой Kubernetes
+- Применяется ко всем AI namespace (training / inference)
+- Не управляет доступами, сетью и данными
+- Содержит только runtime enforcement
+
+**DevSecOps-смысл `modules/kubernetes/runtime-constraints/`:**
+
+- Runtime-защита сильнее RBAC
+- Syscall-фильтрация как последний рубеж
+- Доступ к GPU только через контролируемый механизм
+- Единые ограничения для всех AI-workloads
+- Исключение ad-hoc docker-флагов
+- Явная видимость применяемых профилей
+- Доказуемо non-privileged runtime
+- Снижение риска data exfiltration через kernel-abuse
+- Соответствие требованиям secure compute
+
+**Best practices:**
+- Централизованный enforcement runtime-безопасности
+- GPU-доступ контролируемый, не неявный
+- Отсутствие privileged-pod для AI
+- Defense-in-depth поверх IAM и RBAC
+
+**Итог:**
+
+`modules/kubernetes/runtime-constraints/`:
+- последний security-периметр  
+- обязателен для AI-workloads  
+- foundation-уровень, не optional
+
+### modules/kubernetes/runtime-constraints/device-plugin.tf
+
+Назначение
+Контролируемая работа с GPU через официальный device plugin.
+
+Пояснение
+прямого доступа к /dev нет
+GPU выдаётся только через kubelet
+fail-fast при неправильной конфигурации
+
+### modules/kubernetes/runtime-constraints/seccomp.tf
+
+Назначение
+Запрет небезопасных syscalls для AI контейнеров.
+
+Пояснение
+deny-by-default
+одинаково для training и inference
+снижает impact RCE
+
+### modules/kubernetes/runtime-constraints/variables.tf
+
+Пояснение
+feature flag для environments
+dev ≠ prod
+
+### modules/kubernetes/runtime-constraints/outputs.tf
+
+Пояснение
+используется ai/training и ai/inference
+явная зависимость
+
+---
+
+
 
 
 
