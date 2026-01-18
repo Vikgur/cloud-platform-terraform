@@ -48,3 +48,5 @@ reports/
 # Terraform CLI local config
 .terraformrc
 terraform.rc
+
+README_draft.md
