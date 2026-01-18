@@ -47,6 +47,7 @@ modules/shared/locals.tf
 modules/shared/naming/{locals.tf,variables.tf,outputs.tf}
 modules/shared/tags/{locals.tf,variables.tf,outputs.tf}
 modules/shared/labels/{locals.tf,variables.tf,outputs.tf}
+modules/storage/{block,object,backups}/.gitkeep
 environments/{dev,stage,prod}/{backend.tf,providers.tf,main.tf,variables.tf,terraform.tfvars}
 policies/opa/terraform/{naming.rego,tagging.rego,encryption.rego,regions.rego,README.md}
 policies/tfsec/tfsec.yml

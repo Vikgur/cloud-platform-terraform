@@ -48,6 +48,7 @@ modules/kubernetes/runtime-constraints/{device-plugin.tf,seccomp.tf,variables.tf
 modules/access/{iam,oidc,rbac}/main.tf
 modules/shared/locals.tf
 modules/shared/{labels,naming,tags}/{locals.tf,variables.tf,outputs.tf}
+modules/storage/{block,object,backups}/.gitkeep
 
 environments/{dev,stage,prod}/{backend.tf,providers.tf,main.tf,variables.tf,terraform.tfvars}
 
